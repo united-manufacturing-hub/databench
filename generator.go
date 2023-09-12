@@ -120,7 +120,7 @@ func (g *Generator) generate() {
 
 		//m.Topic = topic.Name[:SplitPoint]
 		m.Topic = strings.Join(splits[:SplitPoint], ".")
-		keyStringBuilder.WriteString(strings.Join(splits[:SplitPoint], "."))
+		keyStringBuilder.WriteString(strings.Join(splits[SplitPoint:], "."))
 
 		// Append unix nano time to key, preventing imbalance in kafka partitions
 		keyStringBuilder.WriteRune('.')
