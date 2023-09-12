@@ -24,6 +24,8 @@ WORKDIR /app
 COPY --from=build /app/generator .
 COPY --from=build /app/powerplant/powerplant.json powerplant/
 
+# Set executable permissions for the binary
+RUN chmod +x generator
 
 # Set the binary as the default command to run
 CMD ["./generator"]
