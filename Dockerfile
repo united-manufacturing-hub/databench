@@ -28,4 +28,4 @@ COPY --from=build /app/powerplant/powerplant.json powerplant/
 RUN chmod +x generator
 
 # Set the binary as the default command to run
-CMD ["ls"]
+CMD ["./generator"]
