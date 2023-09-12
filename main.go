@@ -41,39 +41,13 @@ func main() {
 		brokers = append(brokers, url)
 	}
 
-	client, err := kafka.NewKafkaClient(&kafka.NewClientOptions{
-		ListenTopicRegex:        nil,
-		SenderTag:               kafka.SenderTag{},
-		ConsumerGroupId:         "",
-		TransactionalID:         "",
-		ClientID:                "data-bench-sender",
-		Brokers:                 brokers,
-		StartOffset:             0,
-		OpenDeadLine:            0,
-		Partitions:              6,
-		ReplicationFactor:       3,
-		EnableTLS:               false,
-		AutoCommit:              true,
-		ProducerReturnSuccesses: false,
-	})
-	if err != nil {
-		zap.S().Fatal(err)
-	}
+	testInsertOnly(brokers)
+}
 
-	// Create a new generator
-	generator, err := NewGenerator()
-	if err != nil {
-		zap.S().Fatal(err)
-	}
+func testInsertOnly(brokers []string) {
+	zap.S().Info("Testing insert only performance")
 
-	// Wait for kafka
-	for {
-		if client.Ready() {
-			break
-		}
-		time.Sleep(1 * time.Second)
-		zap.S().Info("Waiting for kafka")
-	}
+	client, generator := CreateKafkaAndGenerator(brokers)
 
 	zap.S().Info("Beginning load test")
 
@@ -90,11 +64,11 @@ func main() {
 	zap.S().Infof("Kafka Queue Size: %d", qLen)
 	zap.S().Infof("Sent %d messages", requested-uint64(qLen))
 
-	err = client.Close()
+	err := client.Close()
 	if err != nil {
 		zap.S().Fatal(err)
 	}
-	zap.S().Info("Closed kafka client")
+	zap.S().Info("Finished insert only performance test")
 }
 
 func enqueueData(generator *Generator, client *kafka.Client) {
