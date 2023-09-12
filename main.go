@@ -57,16 +57,27 @@ func testInsertOnly(brokers []string) {
 
 	zap.S().Info("Beginning load test")
 
-	go enqueueData(generator, client)
+	deadLine := time.Now().Add(60 * time.Second)
 
-	zap.S().Info("Waiting for messages to be sent")
+	for time.Now().Before(deadLine) {
+		enqueueData(generator, client)
+	}
 
-	time.Sleep(60 * time.Second)
+	zap.S().Info("Send complete")
+
 	requested := generator.GetRequested()
 	qLen := client.GetQueueLength()
 	zap.S().Infof("Requested %d messages", requested)
 	zap.S().Infof("Kafka Queue Size: %d", qLen)
 	zap.S().Infof("Sent %d messages", requested-uint64(qLen))
+
+	zap.S().Info("Waiting for queue to empty")
+	start := time.Now()
+	for client.GetQueueLength() > 0 {
+		time.Sleep(1 * time.Second)
+	}
+	end := time.Now()
+	zap.S().Infof("Queue emptied in %s", end.Sub(start).String())
 
 	err = client.Close()
 	if err != nil {
