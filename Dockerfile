@@ -22,10 +22,12 @@ WORKDIR /app
 
 # Copy the compiled binary and powerplant.json from the build stage
 COPY --from=build /app/generator .
+COPY --from=build /app/run.sh .
 COPY --from=build /app/powerplant/powerplant.json powerplant/
 
 # Set executable permissions for the binary
 RUN chmod +x generator
+RUN chmod +x run.sh
 
 # Set the binary as the default command to run
-CMD ["./generator"]
+CMD ["./run.sh"]
