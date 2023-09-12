@@ -91,6 +91,11 @@ func enqueueData(generator *Generator, client *kafka.Client) {
 
 	err := client.EnqueueMessage(msg)
 	if err != nil {
-		zap.S().Fatal(err)
+		// Check if error is "message queue if full"
+		if err.Error() == "message queue is full" {
+			time.Sleep(10 * time.Millisecond)
+		} else {
+			zap.S().Fatal(err)
+		}
 	}
 }
