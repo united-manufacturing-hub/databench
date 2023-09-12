@@ -1,18 +1,15 @@
-apiVersion: batch/v1
-kind: Job
+apiVersion: v1
+kind: Pod
 metadata:
   name: databench
   namespace: united-manufacturing-hub
 spec:
-  template:
-    spec:
-      containers:
-        - name: databench
-          image: ghcr.io/united-manufacturing-hub/databench:latest
-          imagePullPolicy: Always
-          env:
-            - name: KAFKA_BROKER_URL_0
-              value: "united-manufacturing-hub-kafka:9092"
-      restartPolicy: Never
-  backoffLimit: 1
+    containers:
+      - name: databench
+        image: ghcr.io/united-manufacturing-hub/databench:latest
+        imagePullPolicy: Always
+        env:
+          - name: KAFKA_BROKER_URL_0
+            value: "united-manufacturing-hub-kafka:9092"
+    restartPolicy: Never
 

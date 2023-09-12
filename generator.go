@@ -104,7 +104,7 @@ func NewGenerator() (*Generator, error) {
 func (g *Generator) generate() {
 	topic := randEntry(&g.topics)
 	var m kafka.Message
-	var sb strings.Builder
+	var keyStringBuilder strings.Builder
 	var randomGen = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	data := make(map[string]interface{})
@@ -113,16 +113,20 @@ func (g *Generator) generate() {
 	header["X-Origin"] = []byte("generator")
 
 	for g.running {
-		sb.Reset()
+		keyStringBuilder.Reset()
 		clear(data)
 		// split topic at SPLIT_POINT into Topic and Key
-		m.Topic = topic.Name[:SplitPoint]
-		sb.WriteString(topic.Name[:SplitPoint])
+		splits := strings.Split(topic.Name, ".")
+
+		//m.Topic = topic.Name[:SplitPoint]
+		m.Topic = strings.Join(splits[:SplitPoint], ".")
+		keyStringBuilder.WriteString(strings.Join(splits[:SplitPoint], "."))
+
 		// Append unix nano time to key, preventing imbalance in kafka partitions
-		sb.WriteRune('.')
+		keyStringBuilder.WriteRune('.')
 		nanoTime := time.Now().UnixNano()
-		sb.WriteString(strconv.FormatInt(nanoTime, 10))
-		m.Key = []byte(sb.String())
+		keyStringBuilder.WriteString(strconv.FormatInt(nanoTime, 10))
+		m.Key = []byte(keyStringBuilder.String())
 
 		data["timestamp_ms"] = nanoTime / 1_000_000
 		switch topic.Unit {
