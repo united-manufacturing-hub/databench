@@ -57,9 +57,7 @@ func testInsertOnly(brokers []string) {
 
 	zap.S().Info("Beginning load test")
 
-	for i := 0; i < 16; i++ {
-		go enqueueData(generator, client)
-	}
+	go enqueueData(generator, client)
 
 	zap.S().Info("Waiting for messages to be sent")
 
