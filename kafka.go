@@ -3,16 +3,19 @@ package main
 import (
 	"github.com/united-manufacturing-hub/Sarama-Kafka-Wrapper/pkg/kafka"
 	"go.uber.org/zap"
+	"math/rand"
+	"strconv"
 	"time"
 )
 
-func CreateKafkaAndGenerator(brokers []string) (*kafka.Client, *Generator) {
+func CreateKafka(brokers []string, s string) *kafka.Client {
+	id := "data-bench-sender" + s + strconv.FormatInt(int64(rand.Int()), 10)
 	client, err := kafka.NewKafkaClient(&kafka.NewClientOptions{
 		ListenTopicRegex:        nil,
 		SenderTag:               kafka.SenderTag{},
-		ConsumerGroupId:         "",
+		ConsumerGroupId:         "cgi-" + s,
 		TransactionalID:         "",
-		ClientID:                "data-bench-sender",
+		ClientID:                "cid-" + id,
 		Brokers:                 brokers,
 		StartOffset:             0,
 		OpenDeadLine:            0,
@@ -26,12 +29,6 @@ func CreateKafkaAndGenerator(brokers []string) (*kafka.Client, *Generator) {
 		zap.S().Fatal(err)
 	}
 
-	// Create a new generator
-	generator, err := NewGenerator()
-	if err != nil {
-		zap.S().Fatal(err)
-	}
-
 	// Wait for kafka
 	for {
 		if client.Ready() {
@@ -40,5 +37,5 @@ func CreateKafkaAndGenerator(brokers []string) (*kafka.Client, *Generator) {
 		time.Sleep(1 * time.Second)
 		zap.S().Info("Waiting for kafka")
 	}
-	return client, generator
+	return client
 }

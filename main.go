@@ -47,7 +47,13 @@ func main() {
 func testInsertOnly(brokers []string) {
 	zap.S().Info("Testing insert only performance")
 
-	client, generator := CreateKafkaAndGenerator(brokers)
+	client := CreateKafka(brokers, "tIO")
+
+	// Create a new generator
+	generator, err := NewGenerator()
+	if err != nil {
+		zap.S().Fatal(err)
+	}
 
 	zap.S().Info("Beginning load test")
 
@@ -64,7 +70,7 @@ func testInsertOnly(brokers []string) {
 	zap.S().Infof("Kafka Queue Size: %d", qLen)
 	zap.S().Infof("Sent %d messages", requested-uint64(qLen))
 
-	err := client.Close()
+	err = client.Close()
 	if err != nil {
 		zap.S().Fatal(err)
 	}
