@@ -1,15 +1,15 @@
-# Use the official Go image as the base image
+# Use the official golang image as the base image
 FROM golang AS build
 
 # Set the working directory
 WORKDIR /app
 
-# Copy the Go modules and download them
+# Copy the golang modules and download them
 COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy the rest of the code
-COPY . .
+COPY .. .
 
 # Compile the program (statically)
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o generator .
