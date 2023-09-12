@@ -11,8 +11,8 @@ RUN go mod download
 # Copy the rest of the code
 COPY . .
 
-# Compile the program
-RUN go build -o generator .
+# Compile the program (statically)
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o generator .
 
 # Use a lightweight base image for the final image
 FROM alpine
