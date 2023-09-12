@@ -75,18 +75,26 @@ func main() {
 		zap.S().Info("Waiting for kafka")
 	}
 
+	zap.S().Info("Beginning load test")
+
 	for i := 0; i < 16; i++ {
 		go enqueueData(generator, client)
 	}
 
-	time.Sleep(10 * time.Second)
+	zap.S().Info("Waiting for messages to be sent")
 
-	zap.S().Infof("Kafka Queue Size: %d", client.GetQueueLength())
+	time.Sleep(60 * time.Second)
+	requested := generator.GetRequested()
+	qLen := client.GetQueueLength()
+	zap.S().Infof("Requested %d messages", requested)
+	zap.S().Infof("Kafka Queue Size: %d", qLen)
+	zap.S().Infof("Sent %d messages", requested-uint64(qLen))
 
 	err = client.Close()
 	if err != nil {
 		zap.S().Fatal(err)
 	}
+	zap.S().Info("Closed kafka client")
 }
 
 func enqueueData(generator *Generator, client *kafka.Client) {

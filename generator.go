@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -22,9 +23,10 @@ const SplitPoint = 4
 const CacheSize = 100_000
 
 type Generator struct {
-	topics   []TopicInternal
-	dataChan chan kafka.Message
-	running  bool
+	topics    []TopicInternal
+	dataChan  chan kafka.Message
+	running   bool
+	requested atomic.Uint64
 }
 
 func NewGenerator() (*Generator, error) {
@@ -36,6 +38,7 @@ func NewGenerator() (*Generator, error) {
 	var generator Generator
 	generator.topics = make([]TopicInternal, 0, TopicAmount)
 	generator.running = true
+	generator.requested = atomic.Uint64{}
 
 	var sb strings.Builder
 	for i := 0; i < TopicAmount; i++ {
@@ -255,6 +258,7 @@ func (g *Generator) generate() {
 }
 
 func (g *Generator) GetMessage() kafka.Message {
+	g.requested.Add(1)
 	return <-g.dataChan
 }
 
@@ -264,6 +268,10 @@ func (g *Generator) Stop() {
 	for len(g.dataChan) > 0 {
 		<-g.dataChan
 	}
+}
+
+func (g *Generator) GetRequested() uint64 {
+	return g.requested.Load()
 }
 
 func randEntry[T any](entries *[]T) T {
