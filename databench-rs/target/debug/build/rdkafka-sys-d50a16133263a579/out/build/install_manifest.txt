@@ -1,0 +1,13 @@
+/mnt/c/Users/Ferdinand/Desktop/DataBencher/databench-rs/target/debug/build/rdkafka-sys-d50a16133263a579/out/lib/cmake/RdKafka/RdKafkaConfig.cmake
+/mnt/c/Users/Ferdinand/Desktop/DataBencher/databench-rs/target/debug/build/rdkafka-sys-d50a16133263a579/out/lib/cmake/RdKafka/RdKafkaConfigVersion.cmake
+/mnt/c/Users/Ferdinand/Desktop/DataBencher/databench-rs/target/debug/build/rdkafka-sys-d50a16133263a579/out/lib/cmake/RdKafka/FindLZ4.cmake
+/mnt/c/Users/Ferdinand/Desktop/DataBencher/databench-rs/target/debug/build/rdkafka-sys-d50a16133263a579/out/lib/cmake/RdKafka/RdKafkaTargets.cmake
+/mnt/c/Users/Ferdinand/Desktop/DataBencher/databench-rs/target/debug/build/rdkafka-sys-d50a16133263a579/out/lib/cmake/RdKafka/RdKafkaTargets-debug.cmake
+/mnt/c/Users/Ferdinand/Desktop/DataBencher/databench-rs/target/debug/build/rdkafka-sys-d50a16133263a579/out/share/licenses/librdkafka/LICENSES.txt
+/mnt/c/Users/Ferdinand/Desktop/DataBencher/databench-rs/target/debug/build/rdkafka-sys-d50a16133263a579/out/lib/pkgconfig/rdkafka-static.pc
+/mnt/c/Users/Ferdinand/Desktop/DataBencher/databench-rs/target/debug/build/rdkafka-sys-d50a16133263a579/out/lib/librdkafka.a
+/mnt/c/Users/Ferdinand/Desktop/DataBencher/databench-rs/target/debug/build/rdkafka-sys-d50a16133263a579/out/include/librdkafka/rdkafka.h
+/mnt/c/Users/Ferdinand/Desktop/DataBencher/databench-rs/target/debug/build/rdkafka-sys-d50a16133263a579/out/include/librdkafka/rdkafka_mock.h
+/mnt/c/Users/Ferdinand/Desktop/DataBencher/databench-rs/target/debug/build/rdkafka-sys-d50a16133263a579/out/lib/pkgconfig/rdkafka++-static.pc
+/mnt/c/Users/Ferdinand/Desktop/DataBencher/databench-rs/target/debug/build/rdkafka-sys-d50a16133263a579/out/lib/librdkafka++.a
+/mnt/c/Users/Ferdinand/Desktop/DataBencher/databench-rs/target/debug/build/rdkafka-sys-d50a16133263a579/out/include/librdkafka/rdkafkacpp.h

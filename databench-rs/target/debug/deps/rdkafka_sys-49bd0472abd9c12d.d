@@ -1,0 +1,10 @@
+/mnt/c/Users/Ferdinand/Desktop/DataBencher/databench-rs/target/debug/deps/rdkafka_sys-49bd0472abd9c12d.rmeta: /home/scarjit/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rdkafka-sys-4.6.0+2.2.0/src/lib.rs /home/scarjit/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rdkafka-sys-4.6.0+2.2.0/src/bindings.rs /home/scarjit/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rdkafka-sys-4.6.0+2.2.0/src/helpers.rs /home/scarjit/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rdkafka-sys-4.6.0+2.2.0/src/types.rs
+
+/mnt/c/Users/Ferdinand/Desktop/DataBencher/databench-rs/target/debug/deps/librdkafka_sys-49bd0472abd9c12d.rlib: /home/scarjit/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rdkafka-sys-4.6.0+2.2.0/src/lib.rs /home/scarjit/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rdkafka-sys-4.6.0+2.2.0/src/bindings.rs /home/scarjit/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rdkafka-sys-4.6.0+2.2.0/src/helpers.rs /home/scarjit/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rdkafka-sys-4.6.0+2.2.0/src/types.rs
+
+/mnt/c/Users/Ferdinand/Desktop/DataBencher/databench-rs/target/debug/deps/rdkafka_sys-49bd0472abd9c12d.d: /home/scarjit/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rdkafka-sys-4.6.0+2.2.0/src/lib.rs /home/scarjit/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rdkafka-sys-4.6.0+2.2.0/src/bindings.rs /home/scarjit/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rdkafka-sys-4.6.0+2.2.0/src/helpers.rs /home/scarjit/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rdkafka-sys-4.6.0+2.2.0/src/types.rs
+
+/home/scarjit/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rdkafka-sys-4.6.0+2.2.0/src/lib.rs:
+/home/scarjit/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rdkafka-sys-4.6.0+2.2.0/src/bindings.rs:
+/home/scarjit/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rdkafka-sys-4.6.0+2.2.0/src/helpers.rs:
+/home/scarjit/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rdkafka-sys-4.6.0+2.2.0/src/types.rs:

@@ -1,0 +1,13 @@
+prefix=C:\Users\Ferdinand\Desktop\DataBencher\databench-rs\target\debug\build\libz-sys-6941bb0b7031c3e4\out
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+sharedlibdir=@sharedlibdir@
+includedir=@includedir@
+
+Name: zlib
+Description: zlib compression library
+Version: @VERSION@
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lz
+Cflags: -I${includedir}
