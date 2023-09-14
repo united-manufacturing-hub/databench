@@ -1,12 +1,8 @@
 # Use the official rust image as the base image
-FROM rust:alpine AS build
+FROM rust:slim AS build
 
-# Add gnu toolchain
-RUN apk add --no-cache gcc musl-dev
-# Add pthreads, zlib and openssl, cmake, make
-RUN apk add --no-cache libpthread-stubs musl-dev zlib-dev openssl-dev cmake make
-# Add g++ and libstdc++
-RUN apk add --no-cache g++ libstdc++
+# Install cmake and compile dependencies
+RUN apt-get update && apt-get install -y cmake gcc g++ pkg-config libssl-dev git
 
 # Set the working directory
 WORKDIR /app
@@ -20,7 +16,7 @@ COPY powerplant.json .
 RUN cargo build --release
 
 # Use a lightweight base image for the final image
-FROM alpine
+FROM debian:stable-slim
 
 # Set the working directory
 WORKDIR /app
