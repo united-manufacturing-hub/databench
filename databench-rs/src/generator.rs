@@ -1,11 +1,11 @@
-use std::collections::{HashMap, VecDeque};
-use std::sync::Arc;
-use std::sync::mpsc::{Receiver, SyncSender};
-use std::thread;
-use std::time::SystemTime;
-use rand::{Rng, thread_rng};
 use crate::powerplant;
 use crate::powerplant::Unit;
+use rand::{thread_rng, Rng};
+use std::collections::{HashMap, VecDeque};
+use std::sync::mpsc::{Receiver, SyncSender};
+use std::sync::Arc;
+use std::thread;
+use std::time::SystemTime;
 
 const TOPIC_AMOUNT: usize = 100_000;
 const SPLIT_POINT: usize = 4;
@@ -20,13 +20,13 @@ struct TopicInternal {
 }
 
 #[derive(Clone)]
-struct ChannelTopic{
+struct ChannelTopic {
     topic: String,
     value: HashMap<String, String>,
     key: String,
 }
 
-struct Generator{
+struct Generator {
     topics: Arc<Vec<TopicInternal>>,
     channel: (SyncSender<ChannelTopic>, Receiver<ChannelTopic>),
     messages: VecDeque<ChannelTopic>,
@@ -80,7 +80,7 @@ impl Generator {
             let hex = format!("{:06x}", rng.gen_range(0..0xffffff));
             topic.push(hex.to_owned());
 
-            let t: TopicInternal = TopicInternal{
+            let t: TopicInternal = TopicInternal {
                 name: topic.join(""),
                 unit: tag.unit,
                 _type: tag.tag_type,
@@ -89,13 +89,22 @@ impl Generator {
             topics.push(t);
             topic.clear();
         }
-        log::info!("Generated {} topics in {} ms", TOPIC_AMOUNT, now.elapsed().as_millis());
+        log::info!(
+            "Generated {} topics in {} ms",
+            TOPIC_AMOUNT,
+            now.elapsed().as_millis()
+        );
 
         now = std::time::Instant::now();
-        let channel: (SyncSender<ChannelTopic>, Receiver<ChannelTopic>) = std::sync::mpsc::sync_channel(CACHE_SIZE);
-        let mut gen = Self{topics: Arc::new(topics),  channel, messages: VecDeque::with_capacity(CACHE_SIZE)};
+        let channel: (SyncSender<ChannelTopic>, Receiver<ChannelTopic>) =
+            std::sync::mpsc::sync_channel(CACHE_SIZE);
+        let mut gen = Self {
+            topics: Arc::new(topics),
+            channel,
+            messages: VecDeque::with_capacity(CACHE_SIZE),
+        };
 
-        let messages_per_thread = CACHE_SIZE/THREADS;
+        let messages_per_thread = CACHE_SIZE / THREADS;
         let diff = CACHE_SIZE - (messages_per_thread * THREADS);
         for _ in 0..THREADS {
             let xtopics = gen.topics.clone();
@@ -107,10 +116,15 @@ impl Generator {
         begin_generate(gen.channel.0.clone(), gen.topics.clone(), diff);
 
         while gen.messages.len() < CACHE_SIZE {
-            gen.messages.push_back(gen.channel.1.recv().expect("Failed to receive message"));
+            gen.messages
+                .push_back(gen.channel.1.recv().expect("Failed to receive message"));
         }
 
-        log::info!("Generated {} messages in {} ms", CACHE_SIZE, now.elapsed().as_millis());
+        log::info!(
+            "Generated {} messages in {} ms",
+            CACHE_SIZE,
+            now.elapsed().as_millis()
+        );
 
         return gen;
     }
@@ -124,124 +138,146 @@ impl Generator {
     }
 }
 
-
-
-fn begin_generate(channel: SyncSender<ChannelTopic>, topics: Arc<Vec<TopicInternal>>, to_generate: usize){
+fn begin_generate(
+    channel: SyncSender<ChannelTopic>,
+    topics: Arc<Vec<TopicInternal>>,
+    to_generate: usize,
+) {
     let mut rng = thread_rng();
-    let mut data: HashMap<String,String> = HashMap::new();
+    let mut data: HashMap<String, String> = HashMap::new();
 
-    for i in 0..to_generate{
+    for i in 0..to_generate {
         data.clear();
         let topic = rand_entry(&topics);
         let topic_name_split: Vec<&str> = topic.name.split(".").collect();
 
-        let topic_name = topic_name_split.iter().take(SPLIT_POINT).cloned().collect::<Vec<_>>().join(".");
-        let mut key = topic_name_split.iter().skip(SPLIT_POINT).cloned().collect::<Vec<_>>().join(".");
+        let topic_name = topic_name_split
+            .iter()
+            .take(SPLIT_POINT)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join(".");
+        let mut key = topic_name_split
+            .iter()
+            .skip(SPLIT_POINT)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join(".");
 
-        let nano_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).expect("Failed to get time").as_nanos();
+        let nano_time = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .expect("Failed to get time")
+            .as_nanos();
         key.push_str(&format!(".{}", nano_time));
 
-        data.insert("timestamp_ms".to_owned(), format!("{}",nano_time / 1_000_000));
+        data.insert(
+            "timestamp_ms".to_owned(),
+            format!("{}", nano_time / 1_000_000),
+        );
 
         // Match on topic.unit
         match topic.unit {
-            Unit::None => {
-                match topic._type {
-                    powerplant::Type::Boolean => {
-                        data.insert("value".to_owned(), format!("{}", rng.gen_bool(0.5)));
-                    }
-                    powerplant::Type::Float => {
-                        data.insert("value".to_owned(), format!("{}", rng.gen_range(0.0..100.0)));
-                    }
-                    powerplant::Type::Int => {
-                        data.insert("value".to_owned(), format!("{}", rng.gen_range(0..100)));
-                    }
+            Unit::None => match topic._type {
+                powerplant::Type::Boolean => {
+                    data.insert("value".to_owned(), format!("{}", rng.gen_bool(0.5)));
                 }
-            }
-            Unit::DegreeC => {
-                match topic._type {
-                    powerplant::Type::Boolean => {
-                        log::error!("Boolean type not supported for unit DegreeC");
-                        continue;
-                    }
-                    powerplant::Type::Float => {
-                        data.insert("degreeC".to_owned(), format!("{}", rng.gen_range(0.0..100.0)));
-                    }
-                    powerplant::Type::Int => {
-                        data.insert("degreeC".to_owned(), format!("{}", rng.gen_range(0..100)));
-                    }
+                powerplant::Type::Float => {
+                    data.insert("value".to_owned(), format!("{}", rng.gen_range(0.0..100.0)));
                 }
-            }
-            Unit::Percent => {
-                match topic._type {
-                    powerplant::Type::Boolean => {
-                        log::error!("Boolean type not supported for unit Percent");
-                        continue;
-                    }
-                    powerplant::Type::Float => {
-                        data.insert("percent".to_owned(), format!("{}", rng.gen_range(0.0..100.0)));
-                    }
-                    powerplant::Type::Int => {
-                        data.insert("percent".to_owned(), format!("{}", rng.gen_range(0..100)));
-                    }
+                powerplant::Type::Int => {
+                    data.insert("value".to_owned(), format!("{}", rng.gen_range(0..100)));
                 }
-            }
-            Unit::Pascal => {
-                match topic._type {
-                    powerplant::Type::Boolean => {
-                        log::error!("Boolean type not supported for unit Pascal");
-                        continue;
-                    }
-                    powerplant::Type::Float => {
-                        data.insert("pascal".to_owned(), format!("{}", rng.gen_range(0.0..100.0)));
-                    }
-                    powerplant::Type::Int => {
-                        data.insert("pascal".to_owned(), format!("{}", rng.gen_range(0..100)));
-                    }
+            },
+            Unit::DegreeC => match topic._type {
+                powerplant::Type::Boolean => {
+                    log::error!("Boolean type not supported for unit DegreeC");
+                    continue;
                 }
-            }
-            Unit::CubicMetersPerHour => {
-                match topic._type {
-                    powerplant::Type::Boolean => {
-                        log::error!("Boolean type not supported for unit CubicMetersPerHour");
-                        continue;
-                    }
-                    powerplant::Type::Float => {
-                        data.insert("cubicMetersPerHour".to_owned(), format!("{}", rng.gen_range(0.0..100.0)));
-                    }
-                    powerplant::Type::Int => {
-                        data.insert("cubicMetersPerHour".to_owned(), format!("{}", rng.gen_range(0..100)));
-                    }
+                powerplant::Type::Float => {
+                    data.insert(
+                        "degreeC".to_owned(),
+                        format!("{}", rng.gen_range(0.0..100.0)),
+                    );
                 }
-            }
-            Unit::Volt => {
-                match topic._type {
-                    powerplant::Type::Boolean => {
-                        log::error!("Boolean type not supported for unit Volt");
-                        continue;
-                    }
-                    powerplant::Type::Float => {
-                        data.insert("volt".to_owned(), format!("{}", rng.gen_range(0.0..100.0)));
-                    }
-                    powerplant::Type::Int => {
-                        data.insert("volt".to_owned(), format!("{}", rng.gen_range(0..100)));
-                    }
+                powerplant::Type::Int => {
+                    data.insert("degreeC".to_owned(), format!("{}", rng.gen_range(0..100)));
                 }
-            }
-            Unit::Ampere => {
-                match topic._type {
-                    powerplant::Type::Boolean => {
-                        log::error!("Boolean type not supported for unit Ampere");
-                        continue;
-                    }
-                    powerplant::Type::Float => {
-                        data.insert("ampere".to_owned(), format!("{}", rng.gen_range(0.0..100.0)));
-                    }
-                    powerplant::Type::Int => {
-                        data.insert("ampere".to_owned(), format!("{}", rng.gen_range(0..100)));
-                    }
+            },
+            Unit::Percent => match topic._type {
+                powerplant::Type::Boolean => {
+                    log::error!("Boolean type not supported for unit Percent");
+                    continue;
                 }
-            }
+                powerplant::Type::Float => {
+                    data.insert(
+                        "percent".to_owned(),
+                        format!("{}", rng.gen_range(0.0..100.0)),
+                    );
+                }
+                powerplant::Type::Int => {
+                    data.insert("percent".to_owned(), format!("{}", rng.gen_range(0..100)));
+                }
+            },
+            Unit::Pascal => match topic._type {
+                powerplant::Type::Boolean => {
+                    log::error!("Boolean type not supported for unit Pascal");
+                    continue;
+                }
+                powerplant::Type::Float => {
+                    data.insert(
+                        "pascal".to_owned(),
+                        format!("{}", rng.gen_range(0.0..100.0)),
+                    );
+                }
+                powerplant::Type::Int => {
+                    data.insert("pascal".to_owned(), format!("{}", rng.gen_range(0..100)));
+                }
+            },
+            Unit::CubicMetersPerHour => match topic._type {
+                powerplant::Type::Boolean => {
+                    log::error!("Boolean type not supported for unit CubicMetersPerHour");
+                    continue;
+                }
+                powerplant::Type::Float => {
+                    data.insert(
+                        "cubicMetersPerHour".to_owned(),
+                        format!("{}", rng.gen_range(0.0..100.0)),
+                    );
+                }
+                powerplant::Type::Int => {
+                    data.insert(
+                        "cubicMetersPerHour".to_owned(),
+                        format!("{}", rng.gen_range(0..100)),
+                    );
+                }
+            },
+            Unit::Volt => match topic._type {
+                powerplant::Type::Boolean => {
+                    log::error!("Boolean type not supported for unit Volt");
+                    continue;
+                }
+                powerplant::Type::Float => {
+                    data.insert("volt".to_owned(), format!("{}", rng.gen_range(0.0..100.0)));
+                }
+                powerplant::Type::Int => {
+                    data.insert("volt".to_owned(), format!("{}", rng.gen_range(0..100)));
+                }
+            },
+            Unit::Ampere => match topic._type {
+                powerplant::Type::Boolean => {
+                    log::error!("Boolean type not supported for unit Ampere");
+                    continue;
+                }
+                powerplant::Type::Float => {
+                    data.insert(
+                        "ampere".to_owned(),
+                        format!("{}", rng.gen_range(0.0..100.0)),
+                    );
+                }
+                powerplant::Type::Int => {
+                    data.insert("ampere".to_owned(), format!("{}", rng.gen_range(0..100)));
+                }
+            },
             Unit::SievertPerHour => {
                 match topic._type {
                     powerplant::Type::Boolean => {
@@ -255,57 +291,64 @@ fn begin_generate(channel: SyncSender<ChannelTopic>, topics: Arc<Vec<TopicIntern
                         data.insert("sievertPerHour".to_owned(), format!("{}", sievert));
                     }
                     powerplant::Type::Int => {
-                        data.insert("sievertPerHour".to_owned(), format!("{}", rng.gen_range(0..1)));
+                        data.insert(
+                            "sievertPerHour".to_owned(),
+                            format!("{}", rng.gen_range(0..1)),
+                        );
                         // If this is ever 1, this is a bad day
                     }
                 }
             }
-            Unit::RotationsPerMinute => {
-                match topic._type {
-                    powerplant::Type::Boolean => {
-                        log::error!("Boolean type not supported for unit RotationsPerMinute");
-                        continue;
-                    }
-                    powerplant::Type::Float => {
-                        data.insert("rotationsPerMinute".to_owned(), format!("{}", rng.gen_range(0.0..100.0)));
-                    }
-                    powerplant::Type::Int => {
-                        data.insert("rotationsPerMinute".to_owned(), format!("{}", rng.gen_range(0..100)));
-                    }
+            Unit::RotationsPerMinute => match topic._type {
+                powerplant::Type::Boolean => {
+                    log::error!("Boolean type not supported for unit RotationsPerMinute");
+                    continue;
                 }
-            }
-            Unit::Watt => {
-                match topic._type {
-                    powerplant::Type::Boolean => {
-                        log::error!("Boolean type not supported for unit Watt");
-                        continue;
-                    }
-                    powerplant::Type::Float => {
-                        data.insert("watt".to_owned(), format!("{}", rng.gen_range(0.0..100.0)));
-                    }
-                    powerplant::Type::Int => {
-                        data.insert("watt".to_owned(), format!("{}", rng.gen_range(0..100)));
-                    }
+                powerplant::Type::Float => {
+                    data.insert(
+                        "rotationsPerMinute".to_owned(),
+                        format!("{}", rng.gen_range(0.0..100.0)),
+                    );
                 }
-            }
-            Unit::Speed => {
-                match topic._type {
-                    powerplant::Type::Boolean => {
-                        log::error!("Boolean type not supported for unit Speed");
-                        continue;
-                    }
-                    powerplant::Type::Float => {
-                        data.insert("speed".to_owned(), format!("{}", rng.gen_range(0.0..100.0)));
-                    }
-                    powerplant::Type::Int => {
-                        data.insert("speed".to_owned(), format!("{}", rng.gen_range(0..100)));
-                    }
+                powerplant::Type::Int => {
+                    data.insert(
+                        "rotationsPerMinute".to_owned(),
+                        format!("{}", rng.gen_range(0..100)),
+                    );
                 }
-            }
+            },
+            Unit::Watt => match topic._type {
+                powerplant::Type::Boolean => {
+                    log::error!("Boolean type not supported for unit Watt");
+                    continue;
+                }
+                powerplant::Type::Float => {
+                    data.insert("watt".to_owned(), format!("{}", rng.gen_range(0.0..100.0)));
+                }
+                powerplant::Type::Int => {
+                    data.insert("watt".to_owned(), format!("{}", rng.gen_range(0..100)));
+                }
+            },
+            Unit::Speed => match topic._type {
+                powerplant::Type::Boolean => {
+                    log::error!("Boolean type not supported for unit Speed");
+                    continue;
+                }
+                powerplant::Type::Float => {
+                    data.insert("speed".to_owned(), format!("{}", rng.gen_range(0.0..100.0)));
+                }
+                powerplant::Type::Int => {
+                    data.insert("speed".to_owned(), format!("{}", rng.gen_range(0..100)));
+                }
+            },
         }
 
         // Ignore errors
-        let _ = channel.send(ChannelTopic { topic: topic_name, value: data.clone(), key });
+        let _ = channel.send(ChannelTopic {
+            topic: topic_name,
+            value: data.clone(),
+            key,
+        });
     }
 }
 
@@ -313,7 +356,6 @@ fn rand_entry<T>(entries: &[T]) -> &T {
     let mut rng = rand::thread_rng();
     &entries[rng.gen_range(0..entries.len())]
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -335,6 +377,5 @@ mod tests {
             let original_topic = msg.topic + "." + &msg.key;
             println!("{}: {:?}", original_topic, msg.value);
         }
-
     }
 }

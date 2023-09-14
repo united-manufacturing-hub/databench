@@ -1,5 +1,5 @@
 // Extend your existing imports:
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub type PowerPlant = Vec<PowerplantElement>;
 
@@ -53,7 +53,6 @@ pub enum Type {
     Int,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Serialize, Copy)]
 pub enum Unit {
     None,
@@ -71,8 +70,8 @@ pub enum Unit {
 
 impl<'de> serde::de::Deserialize<'de> for Unit {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: serde::de::Deserializer<'de>,
+    where
+        D: serde::de::Deserializer<'de>,
     {
         let s: String = Deserialize::deserialize(deserializer)?;
         match s.as_str() {
@@ -87,7 +86,10 @@ impl<'de> serde::de::Deserialize<'de> for Unit {
             "rpm" => Ok(Unit::RotationsPerMinute),
             "W" => Ok(Unit::Watt),
             "m/s" => Ok(Unit::Speed),
-            _ => Err(serde::de::Error::custom(format!("invalid unit value: {}", s))),
+            _ => Err(serde::de::Error::custom(format!(
+                "invalid unit value: {}",
+                s
+            ))),
         }
     }
 }
@@ -95,7 +97,6 @@ impl<'de> serde::de::Deserialize<'de> for Unit {
 pub(crate) fn load() -> PowerPlant {
     serde_json::from_str(include_str!("../powerplant.json")).unwrap()
 }
-
 
 #[cfg(test)]
 mod tests {
