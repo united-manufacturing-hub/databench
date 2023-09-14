@@ -49,7 +49,7 @@ async fn test_insert_speed() {
 
     let producer: &FutureProducer = &ClientConfig::new()
         .set("bootstrap.servers", broker_urls.join(","))
-        .set("message.timeout.ms", "5000")
+        .set("message.timeout.ms", "50000")
         .create()
         .expect("Producer creation error");
 
