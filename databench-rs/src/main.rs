@@ -30,8 +30,8 @@ async fn test_insert_speed() {
                 if v.is_empty(){
                     break;
                 }
-                broker_urls.push(v);
                 info!("Found broker: {}", v);
+                broker_urls.push(v);
             }
             Err(_) => {
                 break;
