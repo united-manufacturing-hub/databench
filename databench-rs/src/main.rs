@@ -21,24 +21,29 @@ async fn test_insert_speed() {
 
     let mut broker_urls = vec![];
 
-    if broker_urls.is_empty() {
-        warn!("No brokers specified, using united-manufacturing-hub-kafka-external:9094");
-        broker_urls.push("united-manufacturing-hub-kafka-external:9094".to_string());
-    }
-
     // Read brokers from env
     for i in 0..10 {
         // KAFKA_BROKER_URL_<i>
         let env_var = format!("KAFKA_BROKER_URL_{}", i);
         match std::env::var(&env_var) {
             Ok(v) => {
+                if v.is_empty(){
+                    break;
+                }
                 broker_urls.push(v);
+                info!("Found broker: {}", v);
             }
             Err(_) => {
                 break;
             }
         }
     }
+
+    if broker_urls.is_empty() {
+        warn!("No brokers specified, using united-manufacturing-hub-kafka-external:9094");
+        broker_urls.push("united-manufacturing-hub-kafka-external:9094".to_string());
+    }
+
 
 
     let producer: &FutureProducer = &ClientConfig::new()

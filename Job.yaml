@@ -10,6 +10,6 @@ spec:
         imagePullPolicy: Always
         env:
           - name: KAFKA_BROKER_URL_0
-            value: "united-manufacturing-hub-kafka:9092"
+            value: "united-manufacturing-hub-kafka-external:9094"
     restartPolicy: Never
 
