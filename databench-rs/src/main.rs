@@ -109,7 +109,7 @@ async fn test_insert_speed() {
                 .key(&msg.key);
             let delivery_status = producer.send(
                 record,
-                Timeout::After(std::time::Duration::from_secs(10)),
+                Timeout::After(std::time::Duration::from_secs(60)),
             );
             delivery_status
         })
@@ -127,18 +127,6 @@ async fn test_insert_speed() {
             }
             Err(e) => {
                 failed += 1;
-                // Switch on the KafkaError to decide what to do. (extract e.0)
-                match e.0 {
-                    rdkafka::error::KafkaError::MessageProduction(RDKafkaError) => {
-                        error!("Failed to produce message: {:?}", RDKafkaError)
-                    }
-                    rdkafka::error::KafkaError::AdminOp(RDKafkaError) => {
-                        error!("Failed to create topic: {:?}", RDKafkaError)
-                    }
-                    _ => {
-                        error!("Failed to send message: {:?}", e)
-                    }
-                }
             }
         }
     }
