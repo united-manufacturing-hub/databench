@@ -6,6 +6,7 @@ use log::{error, info, warn};
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use rdkafka::util::Timeout;
 use rdkafka::ClientConfig;
+use tokio::join;
 
 pub(crate) mod generator;
 pub(crate) mod powerplant;
@@ -48,7 +49,7 @@ async fn test_insert_speed() {
 
     let producer: &FutureProducer = &ClientConfig::new()
         .set("bootstrap.servers", broker_urls.join(","))
-        .set("message.timeout.ms", "1000")
+        .set("message.timeout.ms", "5000")
         .create()
         .expect("Producer creation error");
 
@@ -84,7 +85,7 @@ async fn test_insert_speed() {
                 .payload("")
                 .key("")
                 .partition(0),
-            Timeout::After(std::time::Duration::from_millis(10)),
+            Timeout::After(std::time::Duration::from_millis(100)),
         );
         match delivery_status.await {
             Ok(v) => {
@@ -100,7 +101,7 @@ async fn test_insert_speed() {
 
     let now = std::time::Instant::now();
 
-    let futures = messages
+    let joinable_futures = messages
         .iter()
         .map(|msg| {
             let record: FutureRecord<String, Vec<u8>> = FutureRecord::to(&msg.topic)
@@ -108,7 +109,7 @@ async fn test_insert_speed() {
                 .key(&msg.key);
             let delivery_status = producer.send(
                 record,
-                Timeout::After(std::time::Duration::from_millis(100)),
+                Timeout::After(std::time::Duration::from_secs(10)),
             );
             delivery_status
         })
@@ -116,24 +117,32 @@ async fn test_insert_speed() {
 
     info!("Send {} messages in {:?}", n_messages, now.elapsed());
 
-    let now_delivery = std::time::Instant::now();
-    let mut failures = 0;
-    let mut successes = 0;
-    // Await all futures
-    for future in futures {
-        match future.await {
+    let results = futures::future::join_all(joinable_futures).await;
+    let mut failed = 0;
+    let mut success = 0;
+    for result in results {
+        match result {
             Ok(_) => {
-                successes += 1;
-                let msg_per_sec = successes as f64 / now_delivery.elapsed().as_secs_f64();
-                info!("Delivery successful {} msg/sec", msg_per_sec)
+                success += 1;
             }
-            Err(_) => {
-                failures += 1;
+            Err(e) => {
+                failed += 1;
+                // Switch on the KafkaError to decide what to do. (extract e.0)
+                match e.0 {
+                    rdkafka::error::KafkaError::MessageProduction(RDKafkaError) => {
+                        error!("Failed to produce message: {:?}", RDKafkaError)
+                    }
+                    rdkafka::error::KafkaError::AdminOp(RDKafkaError) => {
+                        error!("Failed to create topic: {:?}", RDKafkaError)
+                    }
+                    _ => {
+                        error!("Failed to send message: {:?}", e)
+                    }
+                }
             }
-        };
+        }
     }
 
     info!("Awaited all deliveries in {:?}", now.elapsed());
-    info!("Failures: {}", failures);
-    info!("Failure rate: {:.2}%", failures as f64 / n_messages as f64 * 100.0);
+    info!("Success: {}, Failed: {}", success, failed);
 }

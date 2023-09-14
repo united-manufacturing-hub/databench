@@ -4,12 +4,14 @@ metadata:
   name: databench
   namespace: united-manufacturing-hub
 spec:
-    containers:
-      - name: databench
-        image: ghcr.io/united-manufacturing-hub/databench:latest-rust
-        imagePullPolicy: Always
-        env:
-          - name: KAFKA_BROKER_URL_0
-            value: "united-manufacturing-hub-kafka-external:9094"
-    restartPolicy: Never
+  containers:
+    - name: databench
+      image: ghcr.io/united-manufacturing-hub/databench:latest-rust
+      imagePullPolicy: Always
+      env:
+        - name: RUST_LOG
+          value: info
+        - name: KAFKA_BROKER_URL_0
+          value: "united-manufacturing-hub-kafka-external:9094"
+  restartPolicy: Never
 
