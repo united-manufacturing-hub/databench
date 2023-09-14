@@ -1,42 +1,39 @@
 use crate::powerplant;
 use crate::powerplant::Unit;
 use rand::{thread_rng, Rng};
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap};
 use std::sync::mpsc::{Receiver, SyncSender};
 use std::sync::Arc;
 use std::thread;
 use std::time::SystemTime;
 
-const TOPIC_AMOUNT: usize = 100_000;
-const SPLIT_POINT: usize = 4;
-const CACHE_SIZE: usize = 1_000_000;
 const THREADS: usize = 16;
 
 #[derive(Clone)]
-struct TopicInternal {
-    name: String,
+pub(crate) struct TopicInternal {
+    pub(crate) name: String,
     unit: Unit,
     _type: powerplant::Type,
 }
 
 #[derive(Clone)]
-struct ChannelTopic {
-    topic: String,
-    value: HashMap<String, String>,
-    key: String,
+pub(crate) struct ChannelTopic {
+    pub(crate) topic: String,
+    pub(crate) message: Vec<u8>,
+    pub(crate) key: String,
 }
 
-struct Generator {
+pub(crate) struct Generator {
     topics: Arc<Vec<TopicInternal>>,
     channel: (SyncSender<ChannelTopic>, Receiver<ChannelTopic>),
-    messages: VecDeque<ChannelTopic>,
+    messages: Vec<ChannelTopic>,
 }
 
 impl Generator {
-    fn new() -> Generator {
-        log::info!("Generating {} topics", TOPIC_AMOUNT);
+    pub(crate) fn new(topic_amount: usize, split_point: usize, messages: usize) -> Generator {
+        log::info!("Generating {} topics", topic_amount);
         let mut now = std::time::Instant::now();
-        let mut topics = Vec::with_capacity(TOPIC_AMOUNT);
+        let mut topics = Vec::with_capacity(topic_amount);
 
         let mut rng = thread_rng();
 
@@ -44,7 +41,7 @@ impl Generator {
         let chernobyl = pp.get(0).expect("Chernobyl not found");
 
         let mut topic: Vec<String> = vec![];
-        for _ in 0..TOPIC_AMOUNT {
+        for _ in 0..topic_amount {
             topic.push("umh.v1.".to_owned());
             topic.push(chernobyl.enterprise.clone());
             topic.push(".".to_owned());
@@ -91,38 +88,38 @@ impl Generator {
         }
         log::info!(
             "Generated {} topics in {} ms",
-            TOPIC_AMOUNT,
+            topic_amount,
             now.elapsed().as_millis()
         );
 
         now = std::time::Instant::now();
         let channel: (SyncSender<ChannelTopic>, Receiver<ChannelTopic>) =
-            std::sync::mpsc::sync_channel(CACHE_SIZE);
+            std::sync::mpsc::sync_channel(messages);
         let mut gen = Self {
             topics: Arc::new(topics),
             channel,
-            messages: VecDeque::with_capacity(CACHE_SIZE),
+            messages: Vec::with_capacity(messages),
         };
 
-        let messages_per_thread = CACHE_SIZE / THREADS;
-        let diff = CACHE_SIZE - (messages_per_thread * THREADS);
+        let messages_per_thread = messages / THREADS;
+        let diff = messages - (messages_per_thread * THREADS);
         for _ in 0..THREADS {
             let xtopics = gen.topics.clone();
             let xsend = gen.channel.0.clone();
             thread::spawn(move || {
-                begin_generate(xsend, xtopics, messages_per_thread);
+                begin_generate(xsend, xtopics, messages_per_thread, split_point);
             });
         }
-        begin_generate(gen.channel.0.clone(), gen.topics.clone(), diff);
+        begin_generate(gen.channel.0.clone(), gen.topics.clone(), diff, split_point);
 
-        while gen.messages.len() < CACHE_SIZE {
+        while gen.messages.len() < messages {
             gen.messages
-                .push_back(gen.channel.1.recv().expect("Failed to receive message"));
+                .push(gen.channel.1.recv().expect("Failed to receive message"));
         }
 
         log::info!(
             "Generated {} messages in {} ms",
-            CACHE_SIZE,
+            messages,
             now.elapsed().as_millis()
         );
 
@@ -133,8 +130,8 @@ impl Generator {
         self.topics.clone()
     }
 
-    pub(crate) fn get_message(&mut self) -> Option<ChannelTopic> {
-        self.messages.pop_front()
+    pub(crate) fn get_message(&mut self) -> Vec<ChannelTopic> {
+        self.messages.clone()
     }
 }
 
@@ -142,24 +139,25 @@ fn begin_generate(
     channel: SyncSender<ChannelTopic>,
     topics: Arc<Vec<TopicInternal>>,
     to_generate: usize,
+    split_point: usize,
 ) {
     let mut rng = thread_rng();
     let mut data: HashMap<String, String> = HashMap::new();
 
-    for i in 0..to_generate {
+    for _i in 0..to_generate {
         data.clear();
         let topic = rand_entry(&topics);
         let topic_name_split: Vec<&str> = topic.name.split(".").collect();
 
         let topic_name = topic_name_split
             .iter()
-            .take(SPLIT_POINT)
+            .take(split_point)
             .cloned()
             .collect::<Vec<_>>()
             .join(".");
         let mut key = topic_name_split
             .iter()
-            .skip(SPLIT_POINT)
+            .skip(split_point)
             .cloned()
             .collect::<Vec<_>>()
             .join(".");
@@ -343,17 +341,20 @@ fn begin_generate(
             },
         }
 
+        // HashMap to json bytes
+        let data_as_json = serde_json::to_vec(&data).expect("Failed to serialize data");
+
         // Ignore errors
         let _ = channel.send(ChannelTopic {
             topic: topic_name,
-            value: data.clone(),
+            message: data_as_json,
             key,
         });
     }
 }
 
 fn rand_entry<T>(entries: &[T]) -> &T {
-    let mut rng = rand::thread_rng();
+    let mut rng = thread_rng();
     &entries[rng.gen_range(0..entries.len())]
 }
 
@@ -363,19 +364,21 @@ mod tests {
 
     #[test]
     fn test_new_generator() {
-        let mut g = Generator::new();
-        assert_eq!(g.topics.len(), TOPIC_AMOUNT);
+        let topic_amount = 1000;
+        let mut g = Generator::new(topic_amount, 4, 1000);
+        assert_eq!(g.topics.len(), topic_amount);
         // display first 10 topics
         let topics = g.get_topics();
         for i in 0..10 {
             println!("{}", topics[i].name);
         }
 
+        let messages = g.get_message();
         // Get 5 messages
         for _ in 0..5 {
-            let msg = g.get_message().expect("Failed to get message");
-            let original_topic = msg.topic + "." + &msg.key;
-            println!("{}: {:?}", original_topic, msg.value);
+            let msg = messages.get(0).expect("Failed to get message");
+            let original_topic = msg.topic.clone() + "." + &msg.key;
+            println!("{}: {:?}", original_topic, msg.message);
         }
     }
 }
