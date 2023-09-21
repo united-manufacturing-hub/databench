@@ -1,5 +1,6 @@
 pub mod chernobyl;
 
+#[derive(Debug)]
 pub struct Message {
     pub topic: String,
     pub value: Vec<u8>,
