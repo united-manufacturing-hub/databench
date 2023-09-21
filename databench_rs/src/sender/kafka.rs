@@ -5,7 +5,7 @@ use rdkafka::ClientConfig;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};
 use std::thread;
-use rdkafka::error::{KafkaError, KafkaResult};
+use rdkafka::error::KafkaError;
 use rdkafka::error::RDKafkaErrorCode::OperationTimedOut;
 use rdkafka::types::RDKafkaErrorCode::QueueFull;
 
@@ -39,7 +39,6 @@ impl Sender for KafkaSender {
         }
 
 
-        // Create a new thread, which sends up to _messages_per_second messages per second
         let sending = self.sending.clone();
 
         // Init kafka producer
@@ -110,23 +109,43 @@ impl Sender for KafkaSender {
                 }
 
                 if produced % 10000 == 0 {
-                    let served = producer.poll(Timeout::After(std::time::Duration::from_millis(100)));
-                    println!("Produced {} ({}/s) messages | Served: {}", produced, produced as f64 / now.elapsed().as_secs_f64(), served);
+                    match producer.flush(Timeout::After(std::time::Duration::from_millis(1000))) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            eprintln!("Error flushing producer: {:?}", e);
+                        }
+                    };
+                    println!("Produced {} ({}/s) messages", produced, produced as f64 / now.elapsed().as_secs_f64());
 
                     // Drop the lock as soon as possible
-                    {
-                        let hashlock = hashes.write();
-                        #[allow(clippy::expect_used)]
-                            let mut hashes = hashlock.expect("Failed to get write lock");
-                        for hash in thread_hashes.drain(..) {
-                            hashes.push(hash);
-                        }
-                        thread_hashes.clear();
+                    let hashlock = hashes.write();
+                    #[allow(clippy::expect_used)]
+                        let mut hashes = hashlock.expect("Failed to get write lock");
+                    for hash in thread_hashes.drain(..) {
+                        hashes.push(hash);
                     }
+                    thread_hashes.clear();
+
 
                 }
             }
-            producer.poll(Timeout::After(std::time::Duration::from_millis(100)));
+            match producer.flush(Timeout::After(std::time::Duration::from_millis(10000))) {
+                Ok(_) => {}
+                Err(e) => {
+                    eprintln!("Error flushing producer: {:?}", e)
+                }
+            };
+
+            // Drop the lock as soon as possible
+            {
+                let hashlock = hashes.write();
+                #[allow(clippy::expect_used)]
+                    let mut hashes = hashlock.expect("Failed to get write lock");
+                for hash in thread_hashes.drain(..) {
+                    hashes.push(hash);
+                }
+                thread_hashes.clear();
+            }
         });
 
         Ok(())
@@ -179,7 +198,7 @@ mod tests {
             "10.99.112.35:31092".to_string(),
         ])
         .expect("Failed to create sender");
-        let seconds = 60;
+        let seconds = 30;
 
         let now = std::time::Instant::now();
 
