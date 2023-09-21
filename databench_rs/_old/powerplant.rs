@@ -95,7 +95,7 @@ impl<'de> serde::de::Deserialize<'de> for Unit {
 }
 
 pub(crate) fn load() -> PowerPlant {
-    serde_json::from_str(include_str!("../powerplant.json")).unwrap()
+    serde_json::from_str(include_str!("../src/generator/chernobyl/powerplant.json")).unwrap()
 }
 
 #[cfg(test)]

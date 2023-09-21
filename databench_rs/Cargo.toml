@@ -1,5 +1,5 @@
 [package]
-name = "databench-rs"
+name = "databench_rs"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,19 +8,29 @@ edition = "2021"
 [dependencies]
 serde_json = "1.0.104"
 env_logger = "0.10.0"
-rand = "0.8.5"
 log = "0.4.19"
 futures = "0.3.28"
+anyhow = "1.0.75"
+rand = "0.8.5"
+regex = "1.9.5"
+
 
 [dependencies.tokio]
 version = "1.30.0"
 features = ["rt", "macros", "rt-multi-thread"]
 
 [dependencies.rdkafka]
-version = "0.33.2"
+version = "0.34.0"
 features = ["cmake-build"]
 
 
 [dependencies.serde]
 version = "1.0.183"
 features = ["derive"]
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[[bench]]
+name = "benchmarks"
+harness = false

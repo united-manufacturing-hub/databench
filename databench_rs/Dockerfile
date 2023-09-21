@@ -10,7 +10,7 @@ WORKDIR /app
 # Copy the Cargo.toml and src files
 COPY Cargo.toml .
 COPY src src
-COPY powerplant.json .
+COPY src/generator/chernobyl/powerplant.json .
 
 # Compile the program (statically)
 RUN cargo build --release
