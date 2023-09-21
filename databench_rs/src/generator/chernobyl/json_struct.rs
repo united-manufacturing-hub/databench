@@ -70,8 +70,8 @@ pub enum Unit {
 
 impl<'de> serde::de::Deserialize<'de> for Unit {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: serde::de::Deserializer<'de>,
+    where
+        D: serde::de::Deserializer<'de>,
     {
         let s: String = Deserialize::deserialize(deserializer)?;
         match s.as_str() {
@@ -101,4 +101,3 @@ pub(crate) fn load() -> anyhow::Result<PowerPlant> {
         Err(e) => Err(anyhow::anyhow!("Error loading powerplant.json: {}", e)),
     }
 }
-

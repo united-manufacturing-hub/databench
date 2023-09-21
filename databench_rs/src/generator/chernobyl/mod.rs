@@ -1,11 +1,11 @@
 pub mod json_struct;
 
+use crate::generator::chernobyl::json_struct::{Type, Unit};
+use crate::generator::{Generator, Message};
+use crate::helper::rand_entry;
+use rand::Rng;
 use std::collections::HashMap;
 use std::time::SystemTime;
-use rand::Rng;
-use crate::generator::{Generator, Message};
-use crate::generator::chernobyl::json_struct::{Type, Unit};
-use crate::helper::rand_entry;
 
 #[derive(Clone)]
 pub struct TopicInternal {
@@ -19,12 +19,11 @@ pub struct Chernobyl {
     topics: Vec<TopicInternal>,
 }
 
-
-impl Generator for Chernobyl{
+impl Generator for Chernobyl {
     fn new(split_point: usize, number_of_topics: usize) -> anyhow::Result<Self> {
         let mut c = Self {
             split_point,
-            topics: Vec::with_capacity(number_of_topics)
+            topics: Vec::with_capacity(number_of_topics),
         };
         c.generate_topics(number_of_topics)?;
         Ok(c)
@@ -32,7 +31,7 @@ impl Generator for Chernobyl{
 
     fn get_message(&self) -> anyhow::Result<Message> {
         let topic = rand_entry(&self.topics);
-        let topic_name_split: Vec<&str> = topic.name.split(".").collect();
+        let topic_name_split: Vec<&str> = topic.name.split('.').collect();
         let mut data: HashMap<String, String> = HashMap::new();
         let mut rng = rand::thread_rng();
 
@@ -49,7 +48,6 @@ impl Generator for Chernobyl{
             .collect::<Vec<_>>()
             .join(".");
 
-
         let nano_time = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)?
             .as_nanos();
@@ -59,7 +57,6 @@ impl Generator for Chernobyl{
             "timestamp_ms".to_owned(),
             format!("{}", nano_time / 1_000_000),
         );
-
 
         // Match on topic.unit
         match topic.unit {
@@ -71,7 +68,7 @@ impl Generator for Chernobyl{
                     data.insert("value".to_owned(), format!("{}", rng.gen_range(0.0..1.0)));
                 }
                 Type::Int => {
-                    data.insert("value".to_owned(), format!("{}" ,rng.gen_range(0..1)));
+                    data.insert("value".to_owned(), format!("{}", rng.gen_range(0..1)));
                 }
             },
             Unit::DegreeC => match topic._type {
@@ -81,7 +78,7 @@ impl Generator for Chernobyl{
                 Type::Float => {
                     data.insert(
                         "degreeC".to_owned(),
-                        format!("{}", rng.gen_range(0.0..1000.0))
+                        format!("{}", rng.gen_range(0.0..1000.0)),
                     );
                 }
                 Type::Int => {
@@ -95,11 +92,11 @@ impl Generator for Chernobyl{
                 Type::Float => {
                     data.insert(
                         "percent".to_owned(),
-                        format!("{}", rng.gen_range(0.0..100.0))
+                        format!("{}", rng.gen_range(0.0..100.0)),
                     );
                 }
                 Type::Int => {
-                    data.insert("percent".to_owned(),  format!("{}", rng.gen_range(0..100)));
+                    data.insert("percent".to_owned(), format!("{}", rng.gen_range(0..100)));
                 }
             },
             Unit::Pascal => match topic._type {
@@ -109,11 +106,14 @@ impl Generator for Chernobyl{
                 Type::Float => {
                     data.insert(
                         "pascal".to_owned(),
-                        format!("{}", rng.gen_range(100.0..10000000.0))
+                        format!("{}", rng.gen_range(100.0..10000000.0)),
                     );
                 }
                 Type::Int => {
-                    data.insert("pascal".to_owned(), format!("{}",  rng.gen_range(100..10000000)));
+                    data.insert(
+                        "pascal".to_owned(),
+                        format!("{}", rng.gen_range(100..10000000)),
+                    );
                 }
             },
             Unit::CubicMetersPerHour => match topic._type {
@@ -123,13 +123,13 @@ impl Generator for Chernobyl{
                 Type::Float => {
                     data.insert(
                         "cubicMetersPerHour".to_owned(),
-                        format!("{}", rng.gen_range(0.0..100.0))
+                        format!("{}", rng.gen_range(0.0..100.0)),
                     );
                 }
                 Type::Int => {
                     data.insert(
                         "cubicMetersPerHour".to_owned(),
-                        format!("{}", rng.gen_range(0..100))
+                        format!("{}", rng.gen_range(0..100)),
                     );
                 }
             },
@@ -151,7 +151,7 @@ impl Generator for Chernobyl{
                 Type::Float => {
                     data.insert(
                         "ampere".to_owned(),
-                        format!("{}", rng.gen_range(0.0..1000.0))
+                        format!("{}", rng.gen_range(0.0..1000.0)),
                     );
                 }
                 Type::Int => {
@@ -200,10 +200,16 @@ impl Generator for Chernobyl{
                     unreachable!("Boolean type not supported for unit Watt");
                 }
                 Type::Float => {
-                    data.insert("watt".to_owned(), format!("{}", rng.gen_range(0.0..1_000_000.0)));
+                    data.insert(
+                        "watt".to_owned(),
+                        format!("{}", rng.gen_range(0.0..1_000_000.0)),
+                    );
                 }
                 Type::Int => {
-                    data.insert("watt".to_owned(), format!("{}", rng.gen_range(0..1_000_000)));
+                    data.insert(
+                        "watt".to_owned(),
+                        format!("{}", rng.gen_range(0..1_000_000)),
+                    );
                 }
             },
             Unit::MetersPerSecond => match topic._type {
@@ -211,10 +217,16 @@ impl Generator for Chernobyl{
                     unreachable!("Boolean type not supported for unit Speed");
                 }
                 Type::Float => {
-                    data.insert("metersPerSecond".to_owned(), format!("{}", rng.gen_range(0.0..1000.0)));
+                    data.insert(
+                        "metersPerSecond".to_owned(),
+                        format!("{}", rng.gen_range(0.0..1000.0)),
+                    );
                 }
                 Type::Int => {
-                    data.insert("metersPerSecond".to_owned(), format!("{}", rng.gen_range(0..1000)));
+                    data.insert(
+                        "metersPerSecond".to_owned(),
+                        format!("{}", rng.gen_range(0..1000)),
+                    );
                 }
             },
         }
@@ -222,20 +234,25 @@ impl Generator for Chernobyl{
         // HashMap to json bytes
         let data_as_json = serde_json::to_vec(&data)?;
 
-        Ok(Message{
+        Ok(Message {
             topic: topic_name,
             value: data_as_json,
             key,
         })
     }
 
-    fn generate_topics(&mut self, number_of_topics: usize) -> anyhow::Result<()>{
+    fn generate_topics(&mut self, number_of_topics: usize) -> anyhow::Result<()> {
         let mut rng = rand::thread_rng();
         let mut topic: Vec<String> = vec![];
 
         let pp = json_struct::load()?;
-        let chernobyl = pp.get(0).map_or(Err(anyhow::anyhow!("No powerplant found")), |x| Ok(x))?;
-        let site = chernobyl.sites.get(0).map_or(Err(anyhow::anyhow!("No site found")), |x| Ok(x))?;
+        let chernobyl = pp
+            .get(0)
+            .map_or(Err(anyhow::anyhow!("No powerplant found")), Ok)?;
+        let site = chernobyl
+            .sites
+            .get(0)
+            .map_or(Err(anyhow::anyhow!("No site found")), Ok)?;
 
         for _ in 0..number_of_topics {
             topic.push("umh.v1.".to_owned());
@@ -283,7 +300,6 @@ impl Generator for Chernobyl{
         }
         Ok(())
     }
-
 }
 
 #[cfg(test)]
@@ -294,7 +310,7 @@ mod tests {
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_chernobyl() {
-        let mut c = Chernobyl::new(3, 100).unwrap();
+        let c = Chernobyl::new(3, 100).unwrap();
         for _ in 0..100 {
             let m = c.get_message().unwrap();
 

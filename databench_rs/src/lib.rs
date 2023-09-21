@@ -4,6 +4,6 @@
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::expect_used)]
 
-pub mod helper;
 pub mod generator;
+pub mod helper;
 pub mod sender;
