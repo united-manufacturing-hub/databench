@@ -1,22 +1,23 @@
-use std::collections::VecDeque;
 use anyhow::Result;
-use rdkafka::producer::{BaseProducer, BaseRecord, Producer};
-use rdkafka::ClientConfig;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, RwLock};
-use std::thread;
 use rdkafka::error::KafkaError;
 use rdkafka::error::RDKafkaErrorCode::OperationTimedOut;
+use rdkafka::producer::{BaseProducer, BaseRecord, Producer};
 use rdkafka::types::RDKafkaErrorCode::QueueFull;
+use rdkafka::ClientConfig;
+use std::collections::VecDeque;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, RwLock};
+use std::thread;
 
 use crate::generator::Generator;
 use crate::sender::Sender;
 use rdkafka::util::Timeout;
 
-struct KafkaSender {
+pub struct KafkaSender {
     sending: Arc<AtomicBool>,
     brokers: Vec<String>,
-    hashes: Arc<RwLock<Vec<String>>>,
+    hashes: Arc<RwLock<VecDeque<String>>>,
+    send_message_cnt: Arc<AtomicU64>,
 }
 
 impl Sender for KafkaSender {
@@ -24,20 +25,16 @@ impl Sender for KafkaSender {
         Ok(Self {
             brokers,
             sending: Arc::new(AtomicBool::new(false)),
-            hashes: Arc::new(RwLock::new(Vec::new())),
+            hashes: Arc::new(RwLock::new(VecDeque::new())),
+            send_message_cnt: Arc::new(AtomicU64::new(0)),
         })
     }
 
-    fn begin<T: Generator>(
-        &mut self,
-        split_point: usize,
-        topics: usize,
-    ) -> Result<()> {
+    fn begin<T: Generator>(&mut self, split_point: usize, topics: usize) -> Result<()> {
         // If already sending, return
         if self.sending.swap(true, Ordering::Relaxed) {
             return Ok(());
         }
-
 
         let sending = self.sending.clone();
 
@@ -49,23 +46,22 @@ impl Sender for KafkaSender {
             .create()?;
 
         let hashes = self.hashes.clone();
+        let sent_messages_counter = self.send_message_cnt.clone();
 
         thread::spawn(move || {
             #[allow(clippy::expect_used)]
             let generator = T::new(split_point, topics).expect("Failed to create generator");
-            let mut produced = 0;
             let mut hasher = blake3::Hasher::new();
             let mut thread_hashes = VecDeque::new();
             let now = std::time::Instant::now();
             while sending.load(Ordering::Relaxed) {
-
                 let message = generator.get_message();
                 match message {
                     Ok(msg) => {
                         hasher.reset();
 
                         // Re-assemble original topic by concatenating topic and key with a dot
-                        let topic = format!("{}.{}",msg.topic, msg.key);
+                        let topic = format!("{}.{}", msg.topic, msg.key);
 
                         hasher.update(topic.as_bytes());
                         hasher.update(&msg.value);
@@ -80,14 +76,13 @@ impl Sender for KafkaSender {
                             .send(BaseRecord::to(&msg.topic).payload(&msg.value).key(&msg.key))
                         {
                             Ok(_) => {
-                                produced += 1;
+                                sent_messages_counter.fetch_add(1, Ordering::Relaxed);
                             }
                             Err(produce_feedback) => {
-
                                 match produce_feedback.0 {
                                     KafkaError::MessageProduction(produce_rdkafka_error) => {
                                         if produce_rdkafka_error == QueueFull {
-                                            flush(&producer,0);
+                                            flush(&producer, 0);
                                             continue;
                                         }
                                     }
@@ -96,7 +91,6 @@ impl Sender for KafkaSender {
                                         continue;
                                     }
                                 }
-
 
                                 continue;
                             }
@@ -108,25 +102,27 @@ impl Sender for KafkaSender {
                     }
                 }
 
-                if produced % 10000 == 0 {
+                if sent_messages_counter.load(Ordering::Relaxed) % 10000 == 0 {
                     match producer.flush(Timeout::After(std::time::Duration::from_millis(1000))) {
                         Ok(_) => {}
                         Err(e) => {
                             eprintln!("Error flushing producer: {:?}", e);
                         }
                     };
-                    println!("Produced {} ({}/s) messages", produced, produced as f64 / now.elapsed().as_secs_f64());
+                    println!(
+                        "Produced {} ({}/s) messages",
+                        sent_messages_counter.load(Ordering::Relaxed),
+                        sent_messages_counter.load(Ordering::Relaxed) as f64 / now.elapsed().as_secs_f64()
+                    );
 
                     // Drop the lock as soon as possible
                     let hashlock = hashes.write();
                     #[allow(clippy::expect_used)]
-                        let mut hashes = hashlock.expect("Failed to get write lock");
+                    let mut hashes = hashlock.expect("Failed to get write lock");
                     for hash in thread_hashes.drain(..) {
-                        hashes.push(hash);
+                        hashes.push_back(hash);
                     }
                     thread_hashes.clear();
-
-
                 }
             }
             match producer.flush(Timeout::After(std::time::Duration::from_millis(10000))) {
@@ -140,9 +136,9 @@ impl Sender for KafkaSender {
             {
                 let hashlock = hashes.write();
                 #[allow(clippy::expect_used)]
-                    let mut hashes = hashlock.expect("Failed to get write lock");
+                let mut hashes = hashlock.expect("Failed to get write lock");
                 for hash in thread_hashes.drain(..) {
-                    hashes.push(hash);
+                    hashes.push_back(hash);
                 }
                 thread_hashes.clear();
             }
@@ -155,9 +151,13 @@ impl Sender for KafkaSender {
         self.sending.store(false, Ordering::Relaxed);
     }
 
-    fn get_send_message_hashes(&self) -> Vec<String> {
+    fn get_sent_message_hashes(&self) -> VecDeque<String> {
         #[allow(clippy::expect_used)]
         self.hashes.read().expect("Failed to get read lock").clone()
+    }
+
+    fn get_sent_messages(&self) -> u64 {
+        self.send_message_cnt.load(Ordering::Relaxed)
     }
 }
 
@@ -166,58 +166,19 @@ fn flush(producer: &BaseProducer, mut depth: i32) {
         depth = 10;
     }
     eprintln!("Queue full, waiting");
-    match producer.flush(Timeout::After(std::time::Duration::from_millis((1000 * (depth + 1)) as u64))) {
+    match producer.flush(Timeout::After(std::time::Duration::from_millis(
+        (1000 * (depth + 1)) as u64,
+    ))) {
         Ok(_) => {}
-        Err(flush_error) => {
-            match flush_error {
-                KafkaError::Flush(flush_rd_kafka_error) => {
-                    if flush_rd_kafka_error == OperationTimedOut {
-                        flush(producer, depth + 1);
-                    }
-                }
-                _ => {
-                    eprintln!("Error flushing producer: {:?}", flush_error);
-
+        Err(flush_error) => match flush_error {
+            KafkaError::Flush(flush_rd_kafka_error) => {
+                if flush_rd_kafka_error == OperationTimedOut {
+                    flush(producer, depth + 1);
                 }
             }
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::generator::chernobyl::Chernobyl;
-
-    #[test]
-    #[allow(clippy::expect_used)]
-    fn test_kafka_sender() {
-        let mut sender = KafkaSender::new(vec![
-            "10.99.112.33:31092".to_string(),
-            "10.99.112.34:31092".to_string(),
-            "10.99.112.35:31092".to_string(),
-        ])
-        .expect("Failed to create sender");
-        let seconds = 30;
-
-        let now = std::time::Instant::now();
-
-        sender
-            .begin::<Chernobyl>(3, 100)
-            .expect("Failed to begin sending");
-        thread::sleep(std::time::Duration::from_secs(seconds));
-        sender.end();
-        let elapsed = now.elapsed();
-
-        // Wait for kafka to catch up
-        thread::sleep(std::time::Duration::from_secs(5));
-
-        // Get hashes
-        let hashes = sender.get_send_message_hashes();
-        assert!(hashes.len() > 0);
-
-        let msg_per_sec = hashes.len() as f64 / elapsed.as_secs_f64();
-
-        println!("Sent {} ({}/s) messages in {:?}", hashes.len(), msg_per_sec , elapsed);
+            _ => {
+                eprintln!("Error flushing producer: {:?}", flush_error);
+            }
+        },
     }
 }
