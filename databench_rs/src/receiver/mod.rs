@@ -12,3 +12,4 @@ pub(crate) trait Receiver {
 }
 
 pub mod kafka;
+pub mod mqtt;
