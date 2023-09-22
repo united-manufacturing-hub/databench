@@ -1,18 +1,17 @@
-
 #[cfg(test)]
 mod tests {
-    use std::collections::{HashMap, VecDeque};
-    use std::thread;
+    use crate::generator::chernobyl::Chernobyl;
+    use crate::receiver::kafka::KafkaReceiver;
+    use crate::receiver::Receiver;
+    use crate::sender::kafka::KafkaSender;
+    use crate::sender::Sender;
+    use crate::tests::Status;
     use futures::executor;
     use rdkafka::admin::AdminClient;
     use rdkafka::client::DefaultClientContext;
     use rdkafka::ClientConfig;
-    use crate::generator::chernobyl::Chernobyl;
-    use crate::sender::kafka::KafkaSender;
-    use crate::sender::Sender;
-    use crate::receiver::Receiver;
-    use crate::receiver::kafka::KafkaReceiver;
-    use crate::tests::Status;
+    use std::collections::{HashMap, VecDeque};
+    use std::thread;
 
     #[test]
     #[allow(clippy::expect_used)]
@@ -30,21 +29,21 @@ mod tests {
 
         println!("Deleting topic");
         executor::block_on(async {
-            admin_client.delete_topics(&["umh.v1.chernobylnuclearpowerplant"], &Default::default()).await.expect("Failed to delete topic");
+            admin_client
+                .delete_topics(&["umh.v1.chernobylnuclearpowerplant"], &Default::default())
+                .await
+                .expect("Failed to delete topic");
         });
 
-
-
         #[allow(unused_assignments)]
-            let mut send_hashes: VecDeque<String> = VecDeque::new();
+        let mut send_hashes: VecDeque<String> = VecDeque::new();
         #[allow(unused_assignments)]
-            let mut recv_hashes: VecDeque<String> = VecDeque::new();
+        let mut recv_hashes: VecDeque<String> = VecDeque::new();
         #[allow(unused_assignments)]
-            let mut sent_cnt = 0;
+        let mut sent_cnt = 0;
         // Sender
         {
-            let mut sender = KafkaSender::new(brokers.clone())
-                .expect("Failed to create sender");
+            let mut sender = KafkaSender::new(brokers.clone()).expect("Failed to create sender");
             let seconds = 5;
 
             let now = std::time::Instant::now();
@@ -76,8 +75,9 @@ mod tests {
 
         // Receiver
         {
-            let mut receiver = KafkaReceiver::new(brokers, "umh.v1.chernobylnuclearpowerplant".to_string())
-                .expect("Failed to create receiver");
+            let mut receiver =
+                KafkaReceiver::new(brokers, "umh.v1.chernobylnuclearpowerplant".to_string())
+                    .expect("Failed to create receiver");
 
             receiver.begin().expect("Failed to begin receiving");
             for i in 0..120 {
@@ -104,26 +104,26 @@ mod tests {
             match message_map.entry(hash) {
                 std::collections::hash_map::Entry::Occupied(mut entry) => {
                     entry.insert(Status::SentAndReceived);
-                },
+                }
                 std::collections::hash_map::Entry::Vacant(entry) => {
                     entry.insert(Status::Received);
-                },
+                }
             }
         }
 
         let mut not_received = 0;
         let mut received = 0;
-        for (hash, status) in message_map.iter() {
+        for (_hash, status) in message_map.iter() {
             match status {
                 Status::Sent => {
                     not_received += 1;
-                },
+                }
                 Status::Received => {
                     // These are from other tests
-                },
+                }
                 Status::SentAndReceived => {
                     received += 1;
-                },
+                }
             }
         }
 
@@ -132,8 +132,11 @@ mod tests {
             received_percent = received as f64 / (received + not_received) as f64;
         }
 
-        println!("Received {}% of messages [{} of {}]", received_percent * 100.0, received, received + not_received);
+        println!(
+            "Received {}% of messages [{} of {}]",
+            received_percent * 100.0,
+            received,
+            received + not_received
+        );
     }
-
-
 }

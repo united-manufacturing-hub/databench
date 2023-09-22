@@ -1,5 +1,5 @@
-use std::collections::VecDeque;
 use anyhow::Result;
+use std::collections::VecDeque;
 
 pub(crate) trait Receiver {
     fn new(brokers: Vec<String>, topic: String) -> Result<Self>

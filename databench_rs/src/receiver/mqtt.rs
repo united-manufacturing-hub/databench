@@ -1,10 +1,10 @@
+use crate::receiver::Receiver;
+use rumqttc::{Event, Incoming, MqttOptions};
 use std::collections::VecDeque;
-use std::sync::{Arc, RwLock};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, RwLock};
 use std::thread;
 use std::thread::sleep;
-use rumqttc::{ConnectionError, Event, Incoming, MqttOptions};
-use crate::receiver::Receiver;
 
 pub(crate) struct MQTT3Receiver {
     broker: String,
@@ -16,13 +16,16 @@ pub(crate) struct MQTT3Receiver {
 }
 
 impl Receiver for MQTT3Receiver {
-    fn new(brokers: Vec<String>, topic: String) -> anyhow::Result<Self> where Self: Sized {
-        if brokers.len() != 1{
+    fn new(brokers: Vec<String>, topic: String) -> anyhow::Result<Self>
+    where
+        Self: Sized,
+    {
+        if brokers.len() != 1 {
             return Err(anyhow::anyhow!("Only one broker is supported for MQTT"));
         }
-        let (broker, port) = brokers[0].split_at(brokers[0].find(":").unwrap_or(brokers[0].len()));
+        let (broker, port) = brokers[0].split_at(brokers[0].find(':').unwrap_or(brokers[0].len()));
 
-        Ok(Self{
+        Ok(Self {
             broker: broker.to_string(),
             port: port.parse::<u16>()?,
             topic,
@@ -48,8 +51,8 @@ impl Receiver for MQTT3Receiver {
         let hashes = self.hashes.clone();
         let received_messages_counter = self.received_message_cnt.clone();
 
-        thread::spawn(move ||{
-           let mut hasher = blake3::Hasher::new();
+        thread::spawn(move || {
+            let mut hasher = blake3::Hasher::new();
             let mut thread_hashes = VecDeque::new();
 
             while receiving.load(Ordering::Relaxed) {
@@ -63,22 +66,18 @@ impl Receiver for MQTT3Receiver {
                             Ok(event) => {
                                 match event {
                                     Event::Incoming(incoming_event) => {
-                                        match incoming_event {
-                                            Incoming::Publish(publish) => {
-                                                hasher.reset();
-                                                let topic = publish.topic.replace("/", ".");
-                                                hasher.update(topic.as_bytes());
-                                                hasher.update(&publish.payload);
+                                        if let Incoming::Publish(publish) = incoming_event {
+                                            hasher.reset();
+                                            let topic = publish.topic.replace('/', ".");
+                                            hasher.update(topic.as_bytes());
+                                            hasher.update(&publish.payload);
 
-                                                let raw_hash = hasher.finalize();
-                                                let hash = hex::encode(raw_hash.as_bytes());
+                                            let raw_hash = hasher.finalize();
+                                            let hash = hex::encode(raw_hash.as_bytes());
 
-                                                thread_hashes.push_back(hash);
-                                                received_messages_counter.fetch_add(1, Ordering::Relaxed);
-                                            }
-                                            _ => {
-                                                // Ignore other incoming events
-                                            }
+                                            thread_hashes.push_back(hash);
+                                            received_messages_counter
+                                                .fetch_add(1, Ordering::Relaxed);
                                         }
                                     }
                                     Event::Outgoing(_) => {
@@ -95,10 +94,13 @@ impl Receiver for MQTT3Receiver {
                 }
 
                 if received_messages_counter.load(Ordering::Relaxed) % 10000 == 0 {
-                    println!("Received {} messages", received_messages_counter.load(Ordering::Relaxed));
+                    println!(
+                        "Received {} messages",
+                        received_messages_counter.load(Ordering::Relaxed)
+                    );
                     let hashlock = hashes.write();
                     #[allow(clippy::expect_used)]
-                        let mut hashes = hashlock.expect("Failed to get write lock");
+                    let mut hashes = hashlock.expect("Failed to get write lock");
                     for hash in thread_hashes.drain(..) {
                         hashes.push_back(hash);
                     }
@@ -106,17 +108,18 @@ impl Receiver for MQTT3Receiver {
                 }
             }
 
-            println!("Received {} messages", received_messages_counter.load(Ordering::Relaxed));
+            println!(
+                "Received {} messages",
+                received_messages_counter.load(Ordering::Relaxed)
+            );
             let hashlock = hashes.write();
             #[allow(clippy::expect_used)]
-                let mut hashes = hashlock.expect("Failed to get write lock");
+            let mut hashes = hashlock.expect("Failed to get write lock");
             for hash in thread_hashes.drain(..) {
                 hashes.push_back(hash);
             }
             thread_hashes.clear();
-
         });
-
 
         Ok(())
     }

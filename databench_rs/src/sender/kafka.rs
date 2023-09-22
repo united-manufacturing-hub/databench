@@ -112,7 +112,8 @@ impl Sender for KafkaSender {
                     println!(
                         "Produced {} ({}/s) messages",
                         sent_messages_counter.load(Ordering::Relaxed),
-                        sent_messages_counter.load(Ordering::Relaxed) as f64 / now.elapsed().as_secs_f64()
+                        sent_messages_counter.load(Ordering::Relaxed) as f64
+                            / now.elapsed().as_secs_f64()
                     );
 
                     // Drop the lock as soon as possible

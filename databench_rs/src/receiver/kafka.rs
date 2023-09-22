@@ -87,7 +87,10 @@ impl Receiver for KafkaReceiver {
                     },
                 };
                 if received_messages_counter.load(Ordering::Relaxed) % 10000 == 0 {
-                    println!("Received {} messages", received_messages_counter.load(Ordering::Relaxed));
+                    println!(
+                        "Received {} messages",
+                        received_messages_counter.load(Ordering::Relaxed)
+                    );
                     let hashlock = hashes.write();
                     #[allow(clippy::expect_used)]
                     let mut hashes = hashlock.expect("Failed to get write lock");
@@ -98,7 +101,10 @@ impl Receiver for KafkaReceiver {
                 }
             }
 
-            println!("Received {} messages", received_messages_counter.load(Ordering::Relaxed));
+            println!(
+                "Received {} messages",
+                received_messages_counter.load(Ordering::Relaxed)
+            );
             let hashlock = hashes.write();
             #[allow(clippy::expect_used)]
             let mut hashes = hashlock.expect("Failed to get write lock");

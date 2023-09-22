@@ -1,6 +1,6 @@
-use std::collections::VecDeque;
 use crate::generator::Generator;
 use anyhow::Result;
+use std::collections::VecDeque;
 
 pub(crate) trait Sender {
     fn new(brokers: Vec<String>) -> Result<Self>
