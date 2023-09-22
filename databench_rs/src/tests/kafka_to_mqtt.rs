@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::generator::chernobyl::Chernobyl;
-    
+
     use crate::receiver::mqtt::MQTT3Receiver;
     use crate::receiver::Receiver;
     use crate::sender::kafka::KafkaSender;
@@ -17,7 +17,7 @@ mod tests {
 
     #[test]
     #[allow(clippy::expect_used)]
-    fn test_kafka_sender_kafka_receiver() {
+    fn test_kafka_sender_mqtt_receiver() {
         let kafka_brokers = vec![
             "10.99.112.33:31092".to_string(),
             "10.99.112.34:31092".to_string(),
@@ -47,6 +47,10 @@ mod tests {
         let send_hashes_send_thread = send_hashes.clone();
         let recv_thread =
             thread::spawn(move || mqtt_recv(mqtt_brokers.clone(), recv_hash_recv_thread));
+
+        // Sleep for 5 seconds to give the receiver time to start
+        thread::sleep(std::time::Duration::from_secs(5));
+
         let sender_thread =
             thread::spawn(move || kafka_sender(kafka_brokers.clone(), send_hashes_send_thread));
 

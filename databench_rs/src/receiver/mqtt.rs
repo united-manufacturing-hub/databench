@@ -23,7 +23,17 @@ impl Receiver for MQTT3Receiver {
         if brokers.len() != 1 {
             return Err(anyhow::anyhow!("Only one broker is supported for MQTT"));
         }
-        let (broker, port) = brokers[0].split_at(brokers[0].find(':').unwrap_or(brokers[0].len()));
+        let split_pos = match brokers[0].find(':') {
+            None => {
+                return Err(anyhow::anyhow!(
+                    "Broker address must be in the format <address>:<port>"
+                ))
+            }
+            Some(v) => {v}
+        };
+
+        let (broker, port) = brokers[0].split_at(split_pos);
+        let port = &port[1..];
 
         Ok(Self {
             broker: broker.to_string(),
