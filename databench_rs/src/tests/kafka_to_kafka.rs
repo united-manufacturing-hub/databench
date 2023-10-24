@@ -21,7 +21,9 @@ mod tests {
             "10.99.112.34:31092".to_string(),
             "10.99.112.35:31092".to_string(),
         ];
+
         // Remove topic (using admin client)
+        /*
         let admin_client: AdminClient<DefaultClientContext> = ClientConfig::new()
             .set("bootstrap.servers", brokers.join(","))
             .create()
@@ -34,7 +36,7 @@ mod tests {
                 .await
                 .expect("Failed to delete topic");
         });
-
+*/
         #[allow(unused_assignments)]
         let mut send_hashes: VecDeque<String> = VecDeque::new();
         #[allow(unused_assignments)]
@@ -44,7 +46,7 @@ mod tests {
         // Sender
         {
             let mut sender = KafkaSender::new(brokers.clone()).expect("Failed to create sender");
-            let seconds = 5;
+            let seconds = 18*3600;
 
             let now = std::time::Instant::now();
 
@@ -72,6 +74,7 @@ mod tests {
             );
             sent_cnt = sender.get_sent_messages();
         }
+
 
         // Receiver
         {

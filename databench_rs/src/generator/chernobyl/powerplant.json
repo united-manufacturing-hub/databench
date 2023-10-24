@@ -13,7 +13,7 @@
                 "workCells":[
                   {
                     "workCell":"coolingPump",
-                    "tagGroup":"historian",
+                    "tagGroup":"_historian",
                     "tags":[
                       {
                         "name":"temperatures_head",
@@ -58,7 +58,7 @@
                 "workCells":[
                   {
                     "workCell":"controlPanel",
-                    "tagGroup":"historian",
+                    "tagGroup":"_historian",
                     "tags":[
                       {
                         "name":"alert_status",
@@ -104,7 +104,7 @@
                 "workCells":[
                   {
                     "workCell":"turbine",
-                    "tagGroup":"historian",
+                    "tagGroup":"_historian",
                     "tags":[
                       {
                         "name":"rotational_speed",
@@ -150,7 +150,7 @@
                 "workCells":[
                   {
                     "workCell":"waterPump",
-                    "tagGroup":"historian",
+                    "tagGroup":"_historian",
                     "tags":[
                       {
                         "name":"pump_speed",
@@ -196,7 +196,7 @@
                 "workCells":[
                   {
                     "workCell":"exchangerUnit",
-                    "tagGroup":"historian",
+                    "tagGroup":"_historian",
                     "tags":[
                       {
                         "name":"inlet_temperature",
@@ -242,7 +242,7 @@
                 "workCells":[
                   {
                     "workCell":"generator",
-                    "tagGroup":"historian",
+                    "tagGroup":"_historian",
                     "tags":[
                       {
                         "name":"power_output",
@@ -288,7 +288,7 @@
                 "workCells":[
                   {
                     "workCell":"towerUnit",
-                    "tagGroup":"historian",
+                    "tagGroup":"_historian",
                     "tags":[
                       {
                         "name":"water_flowrate",
@@ -334,7 +334,7 @@
                 "workCells":[
                   {
                     "workCell":"pumpUnit",
-                    "tagGroup":"historian",
+                    "tagGroup":"_historian",
                     "tags":[
                       {
                         "name":"flowrate",
@@ -380,7 +380,7 @@
                 "workCells":[
                   {
                     "workCell":"transformer",
-                    "tagGroup":"historian",
+                    "tagGroup":"_historian",
                     "tags":[
                       {
                         "name":"input_voltage",

@@ -51,7 +51,6 @@ impl Generator for Chernobyl {
         let nano_time = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)?
             .as_nanos();
-        key.push_str(&format!(".{}", nano_time));
 
         data.insert(
             "timestamp_ms".to_owned(),
@@ -282,12 +281,6 @@ impl Generator for Chernobyl {
 
             let tag = rand_entry(&work_cell.tags);
             topic.push(tag.name.to_owned());
-
-            topic.push("_".to_owned());
-
-            // Generate 6 digit random hex number
-            let hex = format!("{:06x}", rng.gen_range(0..0xffffff));
-            topic.push(hex.to_owned());
 
             let t: TopicInternal = TopicInternal {
                 name: topic.join(""),
